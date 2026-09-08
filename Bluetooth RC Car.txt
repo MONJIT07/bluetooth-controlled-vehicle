@@ -4,12 +4,6 @@
   Install Adafruit Motor Shield Library before uploading this code.
   AFMotor Library https://learn.adafruit.com/adafruit-motor-shield/library-install
 
-  -> If you need helping guide on how to install library for the motor shield or how to use motor shield then
-     watch this: https://youtu.be/vooJEyco1J4
-
-     Caution: Remove the jumper or switch off the battery switch before connecting the Arduino board to computer.
-
-     For more support contact me on Telegram: @UtGoTech
 
 
 */
