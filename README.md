@@ -1,147 +1,475 @@
-# 🚗 Bluetooth Controlled Vehicle
+# Bluetooth Controlled Vehicle 🚗
 
-A Bluetooth-controlled robotic vehicle built with an **Arduino Uno** and **HC-05 Bluetooth module**, controllable via a smartphone app. The system supports bidirectional DC motor control with PWM-based speed regulation and full directional maneuverability.
+A Bluetooth-controlled robotic vehicle built using **Arduino Uno, HC-05 Bluetooth module, L298N motor driver, and two DC motors**. The vehicle receives movement commands wirelessly from a smartphone and controls the motors according to the received command.
 
----
+## 📌 Project Overview
 
-## 📌 Features
+This project demonstrates a basic embedded control system in which a smartphone acts as the command source, the HC-05 provides wireless communication, the Arduino Uno processes the commands, and the L298N motor driver controls the DC motors.
 
-- Wireless Bluetooth communication up to **10 meters** range
-- **Bidirectional DC motor control** — forward, reverse, left-turn, right-turn
-- **PWM-based speed regulation** for smooth motor response
-- **L298N H-Bridge motor driver IC** for high-current motor drive
-- Stable power delivery via **lithium battery pack** with voltage regulation
-- Validated through iterative hardware testing for signal latency, motor torque response, and Bluetooth reliability
+The vehicle supports:
 
----
+* Forward movement
+* Backward movement
+* Left turn
+* Right turn
+* Stop
+* PWM-based motor control
+* Wireless control through Bluetooth
+* Differential steering
 
-## 🛠️ Hardware Components
+## 🏗️ System Architecture
 
-| Component | Purpose |
-|---|---|
-| Arduino Uno | Main microcontroller |
-| HC-05 Bluetooth Module | Wireless serial communication |
-| L298N H-Bridge Motor Driver | High-current DC motor drive |
-| DC Motors (x2) | Vehicle locomotion |
-| Lithium Battery Pack | Power supply |
-| Multimeter | Debugging & voltage verification |
-
----
-
-## 🔌 Circuit Overview
-
+```text
+              ┌──────────────────────┐
+              │      Smartphone      │
+              │    Bluetooth App     │
+              └──────────┬───────────┘
+                         │
+                  F / B / L / R / S
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │        HC-05         │
+              │ Bluetooth Module     │
+              └──────────┬───────────┘
+                         │
+                    UART / Serial
+                      9600 baud
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │     Arduino Uno      │
+              │                      │
+              │ Command Reception    │
+              │ Command Decoding     │
+              │ Motor Control Logic  │
+              └──────────┬───────────┘
+                         │
+                 Direction + PWM
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │        L298N         │
+              │    H-Bridge Driver   │
+              └──────────┬───────────┘
+                         │
+                 ┌───────┴───────┐
+                 ▼               ▼
+            Left Motor       Right Motor
+                 │               │
+                 └───────┬───────┘
+                         ▼
+                    Vehicle Motion
 ```
-Smartphone App
-      |
-   Bluetooth
-      |
-   HC-05  ──→  Arduino Uno  ──→  L298N H-Bridge  ──→  DC Motors
-                                        ↑
-                              Lithium Battery Pack
-                           (with voltage regulation)
+
+## 🔧 Components Used
+
+| Component     | Purpose                                |
+| ------------- | -------------------------------------- |
+| Arduino Uno   | Main microcontroller and control logic |
+| HC-05         | Bluetooth wireless communication       |
+| L298N         | Dual H-bridge motor driver             |
+| DC Motors × 2 | Vehicle movement                       |
+| Battery       | Power supply                           |
+| Robot chassis | Mechanical structure                   |
+| Smartphone    | Wireless command source                |
+
+## 🔌 Pin Configuration
+
+The current implementation uses the following Arduino pin configuration:
+
+### HC-05 Bluetooth
+
+| Arduino Pin | HC-05 | Function            |
+| ----------- | ----- | ------------------- |
+| D9          | TX    | Arduino software RX |
+| D10         | RX    | Arduino software TX |
+
+The Arduino code uses:
+
+```cpp
+SoftwareSerial bluetoothSerial(9, 10);
 ```
 
-- The **HC-05** communicates with the Arduino over serial (RX/TX).
-- The **Arduino** sends PWM signals and direction pins to the L298N.
-- The **L298N** drives two DC motors independently, enabling differential steering.
-- The **lithium battery pack** powers both the motor driver and the microcontroller via regulated output.
+Communication is configured at:
 
----
+```cpp
+bluetoothSerial.begin(9600);
+```
 
-## 📱 Smartphone Control
+### L298N Motor Driver
 
-Use any standard **Bluetooth RC Controller** app (Android) to send serial commands to the HC-05 module.
+| Arduino Pin | L298N Pin | Function              |
+| ----------- | --------- | --------------------- |
+| D5          | ENA       | Left motor PWM        |
+| D6          | IN1       | Left motor direction  |
+| D7          | IN2       | Left motor direction  |
+| D3          | ENB       | Right motor PWM       |
+| D8          | IN3       | Right motor direction |
+| D4          | IN4       | Right motor direction |
 
-| Command | Action |
-|---|---|
-| `F` | Forward |
-| `B` | Reverse |
-| `L` | Left Turn |
-| `R` | Right Turn |
-| `S` | Stop |
+## 📡 Bluetooth Command Protocol
 
-> You can customize these commands in the Arduino sketch to match your preferred controller app.
+The smartphone sends single-character commands to the HC-05.
 
----
+| Command | Function |
+| ------- | -------- |
+| `F`     | Forward  |
+| `B`     | Backward |
+| `L`     | Left     |
+| `R`     | Right    |
+| `S`     | Stop     |
 
-## 💻 Software & Tools
+The Arduino reads the received character and uses a `switch` statement to execute the corresponding motor-control function.
 
-- **Arduino IDE** — firmware development
-- **Arduino C++** — motor control logic with PWM
+## ⚙️ Motor Control Logic
 
----
+### Forward
 
-## 🚀 Getting Started
+```text
+Left Motor  → Forward
+Right Motor → Forward
+```
 
-### Prerequisites
-- Arduino IDE installed
-- HC-05 Bluetooth module paired with your smartphone
-- A Bluetooth RC controller app installed (e.g., *Arduino Bluetooth Controller* on Android)
+Arduino logic:
 
-### Upload & Run
+```cpp
+IN1 = HIGH
+IN2 = LOW
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/MONJIT07/bluetooth-controlled-vehicle.git
-   cd bluetooth-controlled-vehicle
-   ```
+IN3 = HIGH
+IN4 = LOW
+```
 
-2. Open `bluetooth_car.ino` in Arduino IDE.
+### Backward
 
-3. Connect your Arduino Uno via USB and select the correct **Board** and **Port** under `Tools`.
+```text
+Left Motor  → Backward
+Right Motor → Backward
+```
 
-4. Upload the sketch.
+```cpp
+IN1 = LOW
+IN2 = HIGH
 
-5. Disconnect USB, power the vehicle via the lithium battery pack.
+IN3 = LOW
+IN4 = HIGH
+```
 
-6. Pair your smartphone with the **HC-05** (default PIN: `1234` or `0000`).
+### Left
 
-7. Open your Bluetooth RC app and start driving.
+The left motor rotates backward while the right motor rotates forward.
 
----
+```text
+Left Motor  → Backward
+Right Motor → Forward
+```
 
-## 📐 Pin Configuration
+### Right
 
-| Arduino Pin | Connected To |
-|---|---|
-| D3 (PWM) | L298N ENA (Motor A speed) |
-| D5 (PWM) | L298N ENB (Motor B speed) |
-| D4 | L298N IN1 |
-| D6 | L298N IN2 |
-| D7 | L298N IN3 |
-| D8 | L298N IN4 |
-| D0 (RX) | HC-05 TX |
-| D1 (TX) | HC-05 RX |
+The left motor rotates forward while the right motor rotates backward.
 
-> ⚠️ Disconnect HC-05 from RX/TX before uploading the sketch to avoid upload errors.
+```text
+Left Motor  → Forward
+Right Motor → Backward
+```
 
----
+### Stop
 
-## 📊 Testing & Validation
+Both motor enable signals are set to zero and all direction pins are set LOW.
 
-| Test | Result |
-|---|---|
-| Bluetooth range | Stable up to **10 meters** |
-| Signal latency | Low latency, responsive steering |
-| Motor torque response | Consistent under load |
-| Directional accuracy | All 4 directions validated |
+```cpp
+analogWrite(ENA, 0);
+analogWrite(ENB, 0);
+```
 
----
+## 🎛️ PWM Speed Control
+
+The L298N enable pins are controlled using PWM:
+
+```cpp
+analogWrite(ENA, motorSpeed);
+analogWrite(ENB, motorSpeed);
+```
+
+The current implementation uses:
+
+```cpp
+int motorSpeed = 255;
+```
+
+Arduino Uno provides an 8-bit PWM value from **0 to 255**.
+
+```text
+0   → 0% duty cycle
+128 → approximately 50%
+255 → approximately 100%
+```
+
+PWM allows the motor speed to be adjusted without changing the motor-control logic.
+
+## 🔄 Differential Steering
+
+The vehicle uses **differential steering**.
+
+Instead of using a mechanical steering mechanism, the direction of the vehicle is controlled by independently controlling the left and right motors.
+
+For example:
+
+```text
+LEFT TURN
+
+Left Motor  → Reverse
+Right Motor → Forward
+```
+
+This causes the vehicle to rotate toward the left.
+
+Similarly:
+
+```text
+RIGHT TURN
+
+Left Motor  → Forward
+Right Motor → Reverse
+```
+
+## 💻 Software Flow
+
+```text
+Start
+  │
+  ▼
+Initialize GPIO pins
+  │
+  ▼
+Initialize Bluetooth at 9600 baud
+  │
+  ▼
+Stop motors
+  │
+  ▼
+Check Bluetooth data
+  │
+  ├── No data ──────► Check again
+  │
+  ▼
+Read command
+  │
+  ▼
+Decode command
+  │
+  ├── F ──► Forward
+  ├── B ──► Backward
+  ├── L ──► Left
+  ├── R ──► Right
+  └── S ──► Stop
+```
+
+## 🧠 Working Principle
+
+1. The user presses a movement button on the smartphone.
+2. The smartphone sends the corresponding character through Bluetooth.
+3. The HC-05 receives the character.
+4. The HC-05 transfers the data to the Arduino through serial communication.
+5. The Arduino checks whether data is available.
+6. The Arduino reads the received character.
+7. A `switch` statement identifies the requested movement.
+8. The Arduino generates direction signals for the L298N.
+9. PWM is applied to the motor enable pins.
+10. The L298N drives the two DC motors.
+11. The vehicle performs the requested movement.
+
+## 🧩 Main Arduino Code Structure
+
+The firmware is organized into separate functions for each movement:
+
+```cpp
+forward();
+back();
+left();
+right();
+Stop();
+```
+
+This makes the motor-control logic easier to understand and maintain.
+
+The main loop is responsible for receiving and decoding commands, while the individual functions handle motor control.
+
+## 🔋 Power Architecture
+
+The battery provides the electrical power required by the vehicle.
+
+The system can be conceptually divided into:
+
+```text
+Battery
+   │
+   ├──────────────► Motor Driver ───► DC Motors
+   │
+   └──────────────► Arduino / Control Electronics
+```
+
+Proper grounding between the control electronics and motor-driver circuitry is important for reliable operation.
+
+## 🔄 Communication
+
+The project uses asynchronous serial communication between the HC-05 and Arduino.
+
+The current implementation uses:
+
+```text
+Baud Rate: 9600
+Data: Single-character commands
+Interface: UART-style serial communication
+```
+
+The Arduino uses `SoftwareSerial` so that digital pins 9 and 10 can be used for the Bluetooth interface.
+
+## 🟢 Advantages
+
+* Simple wireless control
+* Low-cost hardware
+* Easy-to-understand embedded architecture
+* Simple command protocol
+* PWM-based motor control
+* Differential steering
+* Modular motor-control functions
+
+## ⚠️ Current Limitations
+
+The current implementation is intentionally simple and has some limitations:
+
+* It is an **open-loop control system**.
+* There is no wheel encoder feedback.
+* There is no PID-based speed control.
+* There is no obstacle detection.
+* There is no battery monitoring.
+* There is no Bluetooth command timeout.
+* There is no acknowledgement or error-checking mechanism for commands.
+* The current motor speed is fixed at `255`.
+
+If Bluetooth communication is interrupted while the vehicle is moving, the current firmware does not automatically stop the motors because there is no communication timeout mechanism.
+
+## 🚀 Possible Future Improvements
+
+### 1. Bluetooth Timeout / Fail-Safe
+
+Add a timeout using `millis()` so that the vehicle automatically stops if no valid command is received for a specified period.
+
+```text
+No command for timeout period
+             ↓
+        Stop motors
+```
+
+### 2. Wheel Encoders
+
+Add encoders to measure actual wheel rotation.
+
+```text
+Motor → Wheel Encoder → Arduino
+                         │
+                         ▼
+                    Feedback
+```
+
+This would enable closed-loop control.
+
+### 3. PID Speed Control
+
+With encoder feedback, PID control could be implemented to maintain a desired wheel speed.
+
+### 4. Variable Speed Control
+
+Instead of keeping:
+
+```cpp
+motorSpeed = 255;
+```
+
+the smartphone could send speed commands, allowing the vehicle to operate at different speeds.
+
+### 5. Obstacle Detection
+
+Ultrasonic or other distance sensors could be added to detect obstacles and automatically stop or change direction.
+
+### 6. Robust Communication Protocol
+
+The simple single-character protocol could be extended using:
+
+* Start/end markers
+* Command IDs
+* Sequence numbers
+* Checksums/CRC
+* Acknowledgements
+
+This would make communication more robust.
+
+## 🛠️ Technologies Used
+
+* **Arduino C++**
+* **Arduino Uno**
+* **HC-05 Bluetooth**
+* **UART / Serial Communication**
+* **SoftwareSerial**
+* **PWM**
+* **GPIO**
+* **L298N H-Bridge**
+* **DC Motor Control**
+* **Differential Steering**
 
 ## 📁 Project Structure
 
-```
+```text
 bluetooth-controlled-vehicle/
-├── bluetooth_car.ino       # Main Arduino sketch
-├── circuit_diagram.png     # Wiring schematic
+│
+├── Bluetooth RC Car.txt
 └── README.md
 ```
 
----
+## 🎯 Learning Outcomes
 
-## 👤 Author
+Through this project, I worked with:
 
-**Monjit Tamuli**  
-B.Tech Electrical Engineering, NIT Silchar  
-GitHub: [@MONJIT07](https://github.com/MONJIT07)  
-Email: monjittamuli7747@gmail.com
+* Microcontroller-based embedded programming
+* GPIO configuration
+* UART-style serial communication
+* Bluetooth communication
+* PWM generation
+* H-bridge motor control
+* DC motor direction control
+* Differential steering
+* Embedded C++ programming
+* Hardware-software integration
+* Basic debugging and testing
+
+## 📌 Project Summary
+
+This project demonstrates how a microcontroller can receive wireless commands and convert them into real-time actuator control.
+
+The complete control chain is:
+
+```text
+Smartphone
+    ↓
+Bluetooth
+    ↓
+HC-05
+    ↓
+Serial Communication
+    ↓
+Arduino Uno
+    ↓
+Command Processing
+    ↓
+PWM + Direction Signals
+    ↓
+L298N H-Bridge
+    ↓
+DC Motors
+    ↓
+Vehicle Movement
+```
+
+The current implementation provides a simple and reliable foundation that can be extended with feedback control, safety mechanisms, sensors, and more robust communication.
